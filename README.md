@@ -28,6 +28,7 @@ Pass a directory to scan all `.tex` files recursively, or a single `.tex` file. 
 | `-a`, `--max-authors` | Truncate author lists (default: 3, use 0 for no limit) |
 | `-l`, `--list-keys` | List found citation keys and exit (no fetching) |
 | `--fresh` | Ignore existing output file and start from scratch |
+| `--ads-api-key` | ADS API key (overrides `ADS_API_KEY` environment variable) |
 
 ### Examples
 
@@ -50,13 +51,19 @@ easybib ./paper -a 0
 
 ### ADS API key
 
-When using ADS as the source (the default), set your API key:
+When using ADS as the source (the default), provide your API key either via the command line:
+
+```bash
+easybib ./paper --ads-api-key your-key-here
+```
+
+Or as an environment variable:
 
 ```bash
 export ADS_API_KEY="your-key-here"
 ```
 
-Get one from https://ui.adsabs.harvard.edu/user/settings/token.
+Get a key from https://ui.adsabs.harvard.edu/user/settings/token.
 
 ## How it works
 

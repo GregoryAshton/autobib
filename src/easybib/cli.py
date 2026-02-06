@@ -46,6 +46,10 @@ def main():
         default="ads",
         help="Preferred BibTeX source: 'ads' (default), 'inspire', or 'auto' (based on key format)",
     )
+    parser.add_argument(
+        "--ads-api-key",
+        help="ADS API key (overrides ADS_API_KEY environment variable)",
+    )
     args = parser.parse_args()
 
     # Collect all citation keys
@@ -77,7 +81,7 @@ def main():
         return 0
 
     # Check for ADS API key (not required if using --source inspire)
-    api_key = os.getenv("ADS_API_KEY")
+    api_key = args.ads_api_key or os.getenv("ADS_API_KEY")
     if not api_key and args.source != "inspire":
         print("Error: ADS_API_KEY environment variable not set")
         print("Get your API key from: https://ui.adsabs.harvard.edu/user/settings/token")
