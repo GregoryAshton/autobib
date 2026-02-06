@@ -4,6 +4,7 @@ import os
 import argparse
 from pathlib import Path
 
+from easybib import __version__
 from easybib.core import (
     extract_cite_keys,
     extract_existing_bib_keys,
@@ -16,6 +17,9 @@ from easybib.core import (
 def main():
     parser = argparse.ArgumentParser(
         description="Extract citations and download BibTeX from NASA/ADS"
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
     parser.add_argument("path", help="LaTeX file or directory containing LaTeX files")
     parser.add_argument(

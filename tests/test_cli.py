@@ -65,7 +65,7 @@ class TestAdsApiKeyOverride:
         with (
             patch(
                 "sys.argv",
-                ["easybib", str(tex), "--ads-api-key", "flag-key"],
+                ["easybib", str(tex), "--ads-api-key", "flag-key", "-o", str(tmp_path / "out.bib")],
             ),
             patch.dict("os.environ", {"ADS_API_KEY": "env-key"}, clear=True),
             patch("easybib.cli.fetch_bibtex") as mock_fetch,
