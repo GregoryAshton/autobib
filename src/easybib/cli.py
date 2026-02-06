@@ -17,7 +17,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Extract citations and download BibTeX from NASA/ADS"
     )
-    parser.add_argument("directory", help="Directory containing LaTeX files")
+    parser.add_argument("path", help="LaTeX file or directory containing LaTeX files")
     parser.add_argument(
         "-o", "--output", default="references.bib", help="Output BibTeX file (existing entries are retained)"
     )
@@ -49,10 +49,14 @@ def main():
     args = parser.parse_args()
 
     # Collect all citation keys
-    tex_dir = Path(args.directory)
+    input_path = Path(args.path)
     all_keys = set()
     all_warnings = []
-    for tex_file in tex_dir.glob("**/*.tex"):
+    if input_path.is_file():
+        tex_files = [input_path]
+    else:
+        tex_files = input_path.glob("**/*.tex")
+    for tex_file in tex_files:
         keys, warnings = extract_cite_keys(tex_file)
         all_keys.update(keys)
         all_warnings.extend(warnings)
