@@ -1,5 +1,8 @@
 # easybib
 
+[![Tests](https://github.com/GregoryAshton/easybib/actions/workflows/tests.yml/badge.svg)](https://github.com/GregoryAshton/easybib/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/GregoryAshton/easybib/branch/main/graph/badge.svg)](https://codecov.io/gh/GregoryAshton/easybib)
+
 Automatically fetch BibTeX entries from [INSPIRE](https://inspirehep.net/) and [NASA/ADS](https://ui.adsabs.harvard.edu/) for LaTeX projects.
 
 easybib scans your `.tex` files for citation keys, looks them up on INSPIRE and/or ADS, and writes a `.bib` file with the results. It handles INSPIRE texkeys (e.g. `Author:2020abc`) and ADS bibcodes (e.g. `2016PhRvL.116f1102A`).
