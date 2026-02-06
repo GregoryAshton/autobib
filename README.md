@@ -32,6 +32,7 @@ Pass a directory to scan all `.tex` files recursively, or a single `.tex` file. 
 | `-l`, `--list-keys` | List found citation keys and exit (no fetching) |
 | `--fresh` | Ignore existing output file and start from scratch |
 | `--ads-api-key` | ADS API key (overrides `ADS_API_KEY` environment variable) |
+| `--config` | Path to config file (default: `~/.easybib.config`) |
 
 ### Examples
 
@@ -50,6 +51,26 @@ easybib ./paper -l
 
 # Keep all authors
 easybib ./paper -a 0
+```
+
+### Config file
+
+You can create a config file at `~/.easybib.config` to set persistent defaults, so you don't have to pass the same flags every time:
+
+```ini
+[easybib]
+output = references.bib
+max-authors = 3
+source = ads
+ads-api-key = your-key-here
+```
+
+All fields are optional. CLI flags override config file values, which override the built-in defaults.
+
+To use a config file at a different location:
+
+```bash
+easybib ./paper --config /path/to/my.config
 ```
 
 ### ADS API key
