@@ -1,13 +1,13 @@
-"""autobib - Automatically fetch BibTeX entries from INSPIRE and ADS for LaTeX projects."""
+"""easybib - Automatically fetch BibTeX entries from INSPIRE and ADS for LaTeX projects."""
 
 from importlib.metadata import version, PackageNotFoundError
 
 try:
-    __version__ = version("autobib")
+    __version__ = version("easybib")
 except PackageNotFoundError:
     __version__ = "unknown"
 
-from autobib.core import (
+from easybib.core import (
     extract_cite_keys,
     extract_existing_bib_keys,
     fetch_bibtex,

@@ -1,19 +1,19 @@
-# autobib
+# easybib
 
 Automatically fetch BibTeX entries from [INSPIRE](https://inspirehep.net/) and [NASA/ADS](https://ui.adsabs.harvard.edu/) for LaTeX projects.
 
-autobib scans your `.tex` files for citation keys, looks them up on INSPIRE and/or ADS, and writes a `.bib` file with the results. It handles INSPIRE texkeys (e.g. `Author:2020abc`) and ADS bibcodes (e.g. `2016PhRvL.116f1102A`).
+easybib scans your `.tex` files for citation keys, looks them up on INSPIRE and/or ADS, and writes a `.bib` file with the results. It handles INSPIRE texkeys (e.g. `Author:2020abc`) and ADS bibcodes (e.g. `2016PhRvL.116f1102A`).
 
 ## Installation
 
 ```bash
-pip install .
+pip install easybib
 ```
 
 ## Usage
 
 ```bash
-autobib /path/to/latex/project
+easybib /path/to/latex/project
 ```
 
 This will scan all `.tex` files in the directory, fetch BibTeX entries, and write them to `references.bib`.
@@ -32,16 +32,16 @@ This will scan all `.tex` files in the directory, fetch BibTeX entries, and writ
 
 ```bash
 # Fetch from INSPIRE (no API key needed)
-autobib ./paper -s inspire
+easybib ./paper -s inspire
 
 # Use a custom output file
-autobib ./paper -o paper.bib
+easybib ./paper -o paper.bib
 
 # List citation keys without fetching
-autobib ./paper -l
+easybib ./paper -l
 
 # Keep all authors
-autobib ./paper -a 0
+easybib ./paper -a 0
 ```
 
 ### ADS API key

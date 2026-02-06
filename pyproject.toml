@@ -3,13 +3,22 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "autobib"
+name = "easybib"
 version = "0.1.0"
 description = "Automatically fetch BibTeX entries from INSPIRE and ADS for LaTeX projects"
+readme = "README.md"
+license = "MIT"
 requires-python = ">=3.9"
+authors = [
+    {name = "Gregory Ashton", email = "gregory.ashton@ligo.org"},
+]
 dependencies = [
     "requests",
 ]
 
+[project.urls]
+Homepage = "https://github.com/GregoryAshton/easybib"
+Repository = "https://github.com/GregoryAshton/easybib"
+
 [project.scripts]
-autobib = "autobib.cli:main"
+easybib = "easybib.cli:main"

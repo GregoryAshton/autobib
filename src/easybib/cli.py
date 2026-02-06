@@ -1,10 +1,10 @@
-"""Command-line interface for autobib."""
+"""Command-line interface for easybib."""
 
 import os
 import argparse
 from pathlib import Path
 
-from autobib.core import (
+from easybib.core import (
     extract_cite_keys,
     extract_existing_bib_keys,
     fetch_bibtex,
