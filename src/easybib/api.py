@@ -291,3 +291,57 @@ def fetch_bibtex(key, api_key, source="ads", ss_api_key=None):
         return fetch_bibtex_semantic_scholar_preferred(key, api_key, ss_api_key)
     else:
         return fetch_bibtex_ads_preferred(key, api_key, ss_api_key=ss_api_key)
+
+
+def get_inspire_bibtex_by_arxiv(arxiv_id):
+    """Fetch BibTeX from INSPIRE for a given arXiv ID."""
+    url = f"https://inspirehep.net/api/literature?q=arxiv:{arxiv_id}"
+    headers = {"Accept": "application/x-bibtex"}
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200 and response.text.strip():
+        return response.text.strip()
+    return None
+
+
+def fetch_bibtex_by_arxiv(arxiv_id, api_key, source="ads", ss_api_key=None):
+    """Fetch BibTeX using an arXiv ID with source preference and fallbacks."""
+    if source in ("ads", "auto"):
+        if api_key:
+            ads_bibcode = search_ads_by_arxiv(arxiv_id, api_key)
+            if ads_bibcode:
+                bibtex = get_ads_bibtex(ads_bibcode, api_key)
+                if bibtex:
+                    return bibtex, f"ADS via arXiv ({ads_bibcode})"
+        bibtex = get_inspire_bibtex_by_arxiv(arxiv_id)
+        if bibtex:
+            return bibtex, "INSPIRE via arXiv"
+        bibtex = get_semantic_scholar_bibtex(arxiv_id, ss_api_key)
+        if bibtex:
+            return bibtex, "Semantic Scholar via arXiv"
+    elif source == "inspire":
+        bibtex = get_inspire_bibtex_by_arxiv(arxiv_id)
+        if bibtex:
+            return bibtex, "INSPIRE via arXiv"
+        if api_key:
+            ads_bibcode = search_ads_by_arxiv(arxiv_id, api_key)
+            if ads_bibcode:
+                bibtex = get_ads_bibtex(ads_bibcode, api_key)
+                if bibtex:
+                    return bibtex, f"ADS (fallback) via arXiv ({ads_bibcode})"
+        bibtex = get_semantic_scholar_bibtex(arxiv_id, ss_api_key)
+        if bibtex:
+            return bibtex, "Semantic Scholar (fallback) via arXiv"
+    elif source == "semantic-scholar":
+        bibtex = get_semantic_scholar_bibtex(arxiv_id, ss_api_key)
+        if bibtex:
+            return bibtex, "Semantic Scholar via arXiv"
+        bibtex = get_inspire_bibtex_by_arxiv(arxiv_id)
+        if bibtex:
+            return bibtex, "INSPIRE (fallback) via arXiv"
+        if api_key:
+            ads_bibcode = search_ads_by_arxiv(arxiv_id, api_key)
+            if ads_bibcode:
+                bibtex = get_ads_bibtex(ads_bibcode, api_key)
+                if bibtex:
+                    return bibtex, f"ADS (fallback) via arXiv ({ads_bibcode})"
+    return None, None

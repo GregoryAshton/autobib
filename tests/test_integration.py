@@ -10,6 +10,7 @@ import pytest
 
 from easybib.api import (
     fetch_bibtex,
+    fetch_bibtex_by_arxiv,
     get_ads_bibtex,
     get_inspire_bibtex,
 )
@@ -67,8 +68,8 @@ class TestADSIntegration:
 
 
 class TestSemanticScholarIntegration:
-    def test_fetch_bibtex_semantic_scholar_preferred(self):
-        result, source = fetch_bibtex(
+    def test_fetch_bibtex_by_arxiv_semantic_scholar_preferred(self):
+        result, source = fetch_bibtex_by_arxiv(
             "2508.18080", api_key=None, source="semantic-scholar"
         )
         assert result is not None, "Expected BibTeX from Semantic Scholar chain, got None"

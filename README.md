@@ -5,7 +5,7 @@
 
 Automatically fetch BibTeX entries from [INSPIRE](https://inspirehep.net/), [NASA/ADS](https://ui.adsabs.harvard.edu/), and [Semantic Scholar](https://www.semanticscholar.org/) for LaTeX projects.
 
-easybib scans your `.tex` files for citation keys, looks them up on INSPIRE, ADS, and/or Semantic Scholar, and writes a `.bib` file with the results. It handles INSPIRE texkeys (e.g. `Author:2020abc`) and ADS bibcodes (e.g. `2016PhRvL.116f1102A`).
+easybib scans your `.tex` files for citation keys, looks them up on INSPIRE, ADS, and/or Semantic Scholar, and writes a `.bib` file with the results. It handles INSPIRE texkeys (e.g. `Author:2020abc`), ADS bibcodes (e.g. `2016PhRvL.116f1102A`), and arXiv IDs (e.g. `2508.18080`).
 
 ## Installation
 
@@ -84,6 +84,30 @@ The `--preferred-source` flag controls where BibTeX entries are fetched from. Th
 - **`auto`** — Chooses the source based on the key format: ADS bibcodes (e.g. `2016PhRvL.116f1102A`) are fetched from ADS, while INSPIRE-style keys are fetched from INSPIRE. Falls back to the other source, then Semantic Scholar, if the preferred one fails.
 - **`semantic-scholar`** — Fetches BibTeX from Semantic Scholar first, falling back to INSPIRE then ADS. Does not require an ADS API key unless the fallback is triggered.
 
+### arXiv IDs as citation keys
+
+You can cite papers directly by their arXiv ID:
+
+```latex
+\cite{2508.18080}
+```
+
+easybib fetches the BibTeX entry from your preferred source (searching by arXiv ID) and writes two entries to the `.bib` file: the full entry under its natural citation key, plus a `@misc` stub so that `\cite{2508.18080}` resolves correctly:
+
+```bibtex
+@article{LIGOScientific:2025hdt,
+  author = {Abbott, R. and others},
+  title  = {...},
+  ...
+}
+
+@misc{2508.18080,
+  crossref = {LIGOScientific:2025hdt}
+}
+```
+
+Both the new-style format (`2508.18080`) and the old-style format (`hep-ph/9905318`) are supported.
+
 ### ADS API key
 
 When using ADS as the source (the default), provide your API key either via the command line:
@@ -119,8 +143,9 @@ Get a key from https://www.semanticscholar.org/product/api.
 ## How it works
 
 1. Scans `.tex` files for `\cite{...}`, `\citep{...}`, `\citet{...}`, and related commands
-2. Filters for keys containing `:` (INSPIRE/ADS format)
+2. Accepts INSPIRE texkeys (`Author:2020abc`), ADS bibcodes (`2016PhRvL.116f1102A`), and arXiv IDs (`2508.18080` or `hep-ph/9905318`); warns and skips anything else
 3. Fetches BibTeX from the preferred source, with automatic fallback
-4. Replaces citation keys to match those used in your `.tex` files
-5. Truncates long author lists
-6. Skips keys already present in the output file (use `--fresh` to override)
+4. For INSPIRE/ADS keys: replaces the citation key to match what is in your `.tex` file
+5. For arXiv IDs: keeps the entry's natural key and appends a `@misc` crossref stub so `\cite{arxiv_id}` resolves correctly
+6. Truncates long author lists
+7. Skips keys already present in the output file (use `--fresh` to override)

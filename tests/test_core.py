@@ -7,6 +7,7 @@ from easybib.core import (
     extract_cite_keys,
     extract_existing_bib_keys,
     is_ads_bibcode,
+    is_arxiv_id,
     is_inspire_key,
 )
 
@@ -62,6 +63,20 @@ class TestExtractCiteKeys:
         assert keys == []
         assert len(warnings) == 1
         assert "not an INSPIRE/ADS key" in warnings[0]
+
+    def test_arxiv_new_format_no_warning(self, tmp_path):
+        tex = tmp_path / "test.tex"
+        tex.write_text(r"\cite{2508.18080}")
+        keys, warnings = extract_cite_keys(tex)
+        assert keys == ["2508.18080"]
+        assert warnings == []
+
+    def test_arxiv_old_format_no_warning(self, tmp_path):
+        tex = tmp_path / "test.tex"
+        tex.write_text(r"\cite{hep-ph/9905318}")
+        keys, warnings = extract_cite_keys(tex)
+        assert keys == ["hep-ph/9905318"]
+        assert warnings == []
 
     def test_citeauthor_and_citeyear(self, tmp_path):
         tex = tmp_path / "test.tex"
@@ -229,3 +244,32 @@ class TestIsInspireKey:
 
     def test_negative_missing_letters(self):
         assert is_inspire_key("Abbott:2016") is False
+
+
+# --- is_arxiv_id ---
+
+
+class TestIsArxivId:
+    def test_new_format_5digit(self):
+        assert is_arxiv_id("2508.18080") is True
+
+    def test_new_format_4digit(self):
+        assert is_arxiv_id("2001.1234") is True
+
+    def test_old_format(self):
+        assert is_arxiv_id("hep-ph/9905318") is True
+
+    def test_old_format_gr_qc(self):
+        assert is_arxiv_id("gr-qc/0002091") is True
+
+    def test_negative_inspire_key(self):
+        assert is_arxiv_id("Abbott:2016blz") is False
+
+    def test_negative_ads_bibcode(self):
+        assert is_arxiv_id("2016PhRvL.116f1102A") is False
+
+    def test_negative_plain_string(self):
+        assert is_arxiv_id("nocolon") is False
+
+    def test_negative_too_many_digits(self):
+        assert is_arxiv_id("2508.180800") is False

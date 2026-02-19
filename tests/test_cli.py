@@ -340,6 +340,48 @@ class TestSemanticScholarCli:
         assert call_kwargs.get("ss_api_key") == "ss-cfg-key"
 
 
+class TestArxivIdKey:
+    def test_arxiv_id_produces_main_and_stub(self, tmp_path):
+        """An arXiv ID key writes both the fetched entry and a @misc crossref stub."""
+        tex = tmp_path / "test.tex"
+        tex.write_text(r"\cite{2508.18080}")
+        output = tmp_path / "out.bib"
+        INSPIRE_BIBTEX = "@article{LIGOScientific:2025hdt,\n  title={Test},\n  author={Abbott, R.},\n}"
+        no_config = str(tmp_path / "nonexistent.config")
+        with (
+            patch(
+                "sys.argv",
+                ["easybib", str(tex), "--preferred-source", "inspire", "--config", no_config, "-o", str(output)],
+            ),
+            patch.dict("os.environ", {}, clear=True),
+            patch("easybib.cli.fetch_bibtex_by_arxiv", return_value=(INSPIRE_BIBTEX, "INSPIRE via arXiv")),
+        ):
+            main()
+        content = output.read_text()
+        assert "@article{LIGOScientific:2025hdt," in content
+        assert "@misc{2508.18080," in content
+        assert "crossref = {LIGOScientific:2025hdt}" in content
+
+    def test_arxiv_id_not_found(self, tmp_path, capsys):
+        """An arXiv ID that cannot be fetched is reported as not found."""
+        tex = tmp_path / "test.tex"
+        tex.write_text(r"\cite{2508.18080}")
+        output = tmp_path / "out.bib"
+        no_config = str(tmp_path / "nonexistent.config")
+        with (
+            patch(
+                "sys.argv",
+                ["easybib", str(tex), "--preferred-source", "inspire", "--config", no_config, "-o", str(output)],
+            ),
+            patch.dict("os.environ", {}, clear=True),
+            patch("easybib.cli.fetch_bibtex_by_arxiv", return_value=(None, None)),
+        ):
+            main()
+        captured = capsys.readouterr()
+        assert "2508.18080" in captured.out
+        assert "Not found" in captured.out
+
+
 class TestFileVsDirectory:
     def test_single_file(self, tmp_path, capsys):
         tex = tmp_path / "paper.tex"

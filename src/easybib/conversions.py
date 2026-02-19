@@ -10,6 +10,19 @@ def replace_bibtex_key(bibtex, new_key):
     return re.sub(pattern, rf"\1{new_key},", bibtex, count=1)
 
 
+def extract_bibtex_key(bibtex):
+    """Extract the citation key from a BibTeX entry string."""
+    match = re.search(r'@\w+\s*\{\s*([^,\s]+)\s*,', bibtex)
+    if match:
+        return match.group(1)
+    return None
+
+
+def make_arxiv_crossref_stub(arxiv_id, bibtex_key):
+    """Create a BibTeX @misc entry that cross-references the main entry."""
+    return f"@misc{{{arxiv_id},\n  crossref = {{{bibtex_key}}}\n}}"
+
+
 def truncate_authors(bibtex, max_authors):
     """Truncate the author list in a BibTeX entry to max_authors.
 

@@ -4,10 +4,12 @@ from unittest.mock import MagicMock, patch
 
 from easybib.api import (
     fetch_bibtex,
+    fetch_bibtex_by_arxiv,
     get_ads_bibtex,
     get_ads_info_from_inspire,
     get_arxiv_id_from_inspire,
     get_inspire_bibtex,
+    get_inspire_bibtex_by_arxiv,
     get_semantic_scholar_bibtex,
     search_ads_by_arxiv,
 )
@@ -312,3 +314,108 @@ class TestGetSemanticScholarBibtex:
         get_semantic_scholar_bibtex("2106.15928")
         call_headers = mock_get.call_args[1].get("headers", {})
         assert "x-api-key" not in call_headers
+
+
+# --- get_inspire_bibtex_by_arxiv ---
+
+
+INSPIRE_ARXIV_BIBTEX = "@article{LIGOScientific:2025hdt,\n  title={Test},\n  author={Abbott, R.},\n}"
+
+
+class TestGetInspireBibtexByArxiv:
+    @patch("easybib.api.requests.get")
+    def test_success(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200, text=INSPIRE_ARXIV_BIBTEX)
+        result = get_inspire_bibtex_by_arxiv("2508.18080")
+        assert result == INSPIRE_ARXIV_BIBTEX.strip()
+        call_url = mock_get.call_args[0][0]
+        assert "arxiv:2508.18080" in call_url
+
+    @patch("easybib.api.requests.get")
+    def test_empty_response(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200, text="   ")
+        result = get_inspire_bibtex_by_arxiv("2508.18080")
+        assert result is None
+
+    @patch("easybib.api.requests.get")
+    def test_non_200(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=404, text="")
+        result = get_inspire_bibtex_by_arxiv("2508.18080")
+        assert result is None
+
+
+# --- fetch_bibtex_by_arxiv ---
+
+
+class TestFetchBibtexByArxiv:
+    @patch("easybib.api.get_ads_bibtex")
+    @patch("easybib.api.search_ads_by_arxiv")
+    def test_ads_preferred_success(self, mock_search, mock_ads):
+        """source='ads': ADS is tried first via search_ads_by_arxiv."""
+        mock_search.return_value = "2025ApJ...000..000A"
+        mock_ads.return_value = INSPIRE_ARXIV_BIBTEX
+        result, source = fetch_bibtex_by_arxiv("2508.18080", "fake-key", source="ads")
+        assert result == INSPIRE_ARXIV_BIBTEX
+        assert "ADS" in source
+
+    @patch("easybib.api.get_inspire_bibtex_by_arxiv")
+    @patch("easybib.api.get_ads_bibtex")
+    @patch("easybib.api.search_ads_by_arxiv")
+    def test_ads_preferred_fallback_to_inspire(self, mock_search, mock_ads, mock_inspire):
+        """source='ads': falls back to INSPIRE when ADS fails."""
+        mock_search.return_value = None
+        mock_ads.return_value = None
+        mock_inspire.return_value = INSPIRE_ARXIV_BIBTEX
+        result, source = fetch_bibtex_by_arxiv("2508.18080", "fake-key", source="ads")
+        assert result == INSPIRE_ARXIV_BIBTEX
+        assert "INSPIRE" in source
+
+    @patch("easybib.api.get_inspire_bibtex_by_arxiv")
+    def test_inspire_preferred_success(self, mock_inspire):
+        """source='inspire': INSPIRE is tried first."""
+        mock_inspire.return_value = INSPIRE_ARXIV_BIBTEX
+        result, source = fetch_bibtex_by_arxiv("2508.18080", None, source="inspire")
+        assert result == INSPIRE_ARXIV_BIBTEX
+        assert "INSPIRE" in source
+
+    @patch("easybib.api.get_semantic_scholar_bibtex")
+    @patch("easybib.api.get_inspire_bibtex_by_arxiv")
+    def test_inspire_preferred_fallback_to_ss(self, mock_inspire, mock_ss):
+        """source='inspire': falls back to Semantic Scholar when INSPIRE fails."""
+        mock_inspire.return_value = None
+        mock_ss.return_value = SS_SAMPLE_BIBTEX
+        result, source = fetch_bibtex_by_arxiv("2508.18080", None, source="inspire")
+        assert result == SS_SAMPLE_BIBTEX
+        assert "Semantic Scholar" in source
+
+    @patch("easybib.api.get_semantic_scholar_bibtex")
+    def test_ss_preferred_success(self, mock_ss):
+        """source='semantic-scholar': Semantic Scholar is tried first."""
+        mock_ss.return_value = SS_SAMPLE_BIBTEX
+        result, source = fetch_bibtex_by_arxiv("2508.18080", None, source="semantic-scholar")
+        assert result == SS_SAMPLE_BIBTEX
+        assert "Semantic Scholar" in source
+
+    @patch("easybib.api.get_inspire_bibtex_by_arxiv")
+    @patch("easybib.api.get_semantic_scholar_bibtex")
+    def test_ss_preferred_fallback_to_inspire(self, mock_ss, mock_inspire):
+        """source='semantic-scholar': falls back to INSPIRE when SS fails."""
+        mock_ss.return_value = None
+        mock_inspire.return_value = INSPIRE_ARXIV_BIBTEX
+        result, source = fetch_bibtex_by_arxiv("2508.18080", None, source="semantic-scholar")
+        assert result == INSPIRE_ARXIV_BIBTEX
+        assert "INSPIRE" in source
+
+    @patch("easybib.api.get_semantic_scholar_bibtex")
+    @patch("easybib.api.get_inspire_bibtex_by_arxiv")
+    @patch("easybib.api.get_ads_bibtex")
+    @patch("easybib.api.search_ads_by_arxiv")
+    def test_not_found(self, mock_search, mock_ads, mock_inspire, mock_ss):
+        """When nothing is found, returns (None, None)."""
+        mock_search.return_value = None
+        mock_ads.return_value = None
+        mock_inspire.return_value = None
+        mock_ss.return_value = None
+        result, source = fetch_bibtex_by_arxiv("2508.18080", "fake-key", source="ads")
+        assert result is None
+        assert source is None

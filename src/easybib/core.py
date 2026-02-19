@@ -3,6 +3,12 @@
 import re
 
 
+def is_arxiv_id(key):
+    """Check if a key looks like an arXiv ID (new format: 2508.18080, or old: hep-ph/9905318)."""
+    return bool(re.match(r'^\d{4}\.\d{4,5}$', key)) or \
+           bool(re.match(r'^[a-z][a-z0-9-]*/\d{7}$', key))
+
+
 def extract_cite_keys(tex_file):
     """Extract all citation keys from a LaTeX file.
 
@@ -24,7 +30,7 @@ def extract_cite_keys(tex_file):
             key = key.strip()
             if not key:
                 warnings.append(f"{tex_file}: Empty citation key found")
-            elif ":" not in key:
+            elif ":" not in key and not is_arxiv_id(key):
                 warnings.append(f"{tex_file}: Skipping key '{key}' (not an INSPIRE/ADS key)")
             else:
                 keys.append(key)
