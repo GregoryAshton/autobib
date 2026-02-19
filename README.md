@@ -31,6 +31,7 @@ Pass a directory to scan all `.tex` files recursively, or a single `.tex` file. 
 | `-a`, `--max-authors` | Truncate author lists (default: 3, use 0 for no limit) |
 | `-l`, `--list-keys` | List found citation keys and exit (no fetching) |
 | `--fresh` | Ignore existing output file and start from scratch |
+| `--key-type` | Enforce a single key format: `inspire`, `ads`, or `arxiv` |
 | `--ads-api-key` | ADS API key (overrides `ADS_API_KEY` environment variable) |
 | `--semantic-scholar-api-key` | Semantic Scholar API key (overrides `SEMANTIC_SCHOLAR_API_KEY` environment variable) |
 | `--config` | Path to config file (default: `~/.easybib.config`) |
@@ -67,7 +68,7 @@ ads-api-key = your-key-here
 semantic-scholar-api-key = your-key-here
 ```
 
-All fields are optional. CLI flags override config file values, which override the built-in defaults.
+All fields are optional. CLI flags override config file values, which override the built-in defaults. The `key-type` setting is also supported (see below).
 
 To use a config file at a different location:
 
@@ -108,6 +109,44 @@ easybib fetches the BibTeX entry from your preferred source (searching by arXiv 
 
 Both the new-style format (`2508.18080`) and the old-style format (`hep-ph/9905318`) are supported.
 
+### Key type enforcement
+
+If your project uses only one type of citation key, use `--key-type` to catch accidental mixing:
+
+```bash
+easybib paper.tex --key-type inspire
+```
+
+Accepted values are `inspire`, `ads`, and `arxiv`. If any key doesn't match, easybib prints the offending keys and their detected types, then exits with a non-zero status — without fetching anything:
+
+```
+Error: --key-type=inspire but 1 key(s) do not match:
+  '2016PhRvL.116f1102A' (detected as: ads)
+```
+
+You can also set this in your config file:
+
+```ini
+[easybib]
+key-type = inspire
+```
+
+### Duplicate detection
+
+easybib detects when two different citation keys in your `.tex` files refer to the same paper — for example, citing both `LIGOScientific:2016aoc` and `2016PhRvL.116f1102A`. Detection is based on:
+
+- The citation key returned by the API (before any key replacement)
+- The arXiv eprint ID in the BibTeX entry
+- The DOI in the BibTeX entry
+
+When a duplicate is found, the second entry is skipped and a warning is printed at the end of the run:
+
+```
+Warning: 1 key(s) skipped — they refer to the same paper as an earlier key.
+Please use a single key per paper in your .tex files:
+  '2016PhRvL.116f1102A' duplicates 'LIGOScientific:2016aoc' (source key 'LIGOScientific:2016aoc')
+```
+
 ### ADS API key
 
 When using ADS as the source (the default), provide your API key either via the command line:
@@ -144,8 +183,10 @@ Get a key from https://www.semanticscholar.org/product/api.
 
 1. Scans `.tex` files for `\cite{...}`, `\citep{...}`, `\citet{...}`, and related commands
 2. Accepts INSPIRE texkeys (`Author:2020abc`), ADS bibcodes (`2016PhRvL.116f1102A`), and arXiv IDs (`2508.18080` or `hep-ph/9905318`); warns and skips anything else
-3. Fetches BibTeX from the preferred source, with automatic fallback
-4. For INSPIRE/ADS keys: replaces the citation key to match what is in your `.tex` file
-5. For arXiv IDs: keeps the entry's natural key and appends a `@misc` crossref stub so `\cite{arxiv_id}` resolves correctly
-6. Truncates long author lists
-7. Skips keys already present in the output file (use `--fresh` to override)
+3. Optionally enforces that all keys are of a single type (`--key-type`)
+4. Fetches BibTeX from the preferred source, with automatic fallback
+5. For INSPIRE/ADS keys: replaces the citation key to match what is in your `.tex` file
+6. For arXiv IDs: keeps the entry's natural key and appends a `@misc` crossref stub so `\cite{arxiv_id}` resolves correctly
+7. Detects duplicate entries (same paper cited under different keys) and skips them with a warning
+8. Truncates long author lists
+9. Skips keys already present in the output file (use `--fresh` to override)
