@@ -74,6 +74,22 @@ class TestMissingApiKey:
         assert "ADS bibcode" in captured.out
         assert "ADS_API_KEY" in captured.out
 
+    def test_semantic_scholar_429_handled_gracefully(self, tmp_path, capsys):
+        """A Semantic Scholar 429 during fetching is caught and reported, not raised."""
+        import requests as req
+        tex = tmp_path / "test.tex"
+        tex.write_text(r"\cite{Author:2020abc}")
+        no_config = str(tmp_path / "nonexistent.config")
+        with (
+            patch("sys.argv", ["easybib", str(tex), "--preferred-source", "inspire", "--config", no_config, "-o", str(tmp_path / "out.bib")]),
+            patch.dict("os.environ", {}, clear=True),
+            patch("easybib.cli.fetch_bibtex", side_effect=req.exceptions.HTTPError("Semantic Scholar rate limit exceeded (429).")),
+        ):
+            result = main()
+        captured = capsys.readouterr()
+        assert "429" in captured.out
+        assert result is None  # should not crash
+
     def test_no_warning_when_api_key_set(self, tmp_path, capsys):
         """No rate-limit warning when an ADS API key is available."""
         tex = tmp_path / "test.tex"

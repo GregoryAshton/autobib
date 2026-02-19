@@ -5,6 +5,8 @@ import os
 import argparse
 from pathlib import Path
 
+import requests
+
 from easybib import __version__
 from easybib.api import fetch_bibtex, fetch_bibtex_by_arxiv
 from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, make_arxiv_crossref_stub
@@ -172,28 +174,32 @@ def main():
     not_found = []
     for key in sorted(keys_to_fetch):
         print(f"Fetching {key}...", end=" ")
-        if is_arxiv_id(key):
-            bibtex, source = fetch_bibtex_by_arxiv(key, api_key, args.preferred_source, ss_api_key=ss_api_key)
-            if bibtex:
-                bibtex = truncate_authors(bibtex, args.max_authors)
-                natural_key = extract_bibtex_key(bibtex)
-                bibtex_entries.append(bibtex)
-                if natural_key:
-                    bibtex_entries.append(make_arxiv_crossref_stub(key, natural_key))
-                print(f"\u2713 {source}")
+        try:
+            if is_arxiv_id(key):
+                bibtex, source = fetch_bibtex_by_arxiv(key, api_key, args.preferred_source, ss_api_key=ss_api_key)
+                if bibtex:
+                    bibtex = truncate_authors(bibtex, args.max_authors)
+                    natural_key = extract_bibtex_key(bibtex)
+                    bibtex_entries.append(bibtex)
+                    if natural_key:
+                        bibtex_entries.append(make_arxiv_crossref_stub(key, natural_key))
+                    print(f"\u2713 {source}")
+                else:
+                    not_found.append(key)
+                    print("\u2717 Not found")
             else:
-                not_found.append(key)
-                print("\u2717 Not found")
-        else:
-            bibtex, source = fetch_bibtex(key, api_key, args.preferred_source, ss_api_key=ss_api_key)
-            if bibtex:
-                bibtex = replace_bibtex_key(bibtex, key)
-                bibtex = truncate_authors(bibtex, args.max_authors)
-                bibtex_entries.append(bibtex)
-                print(f"\u2713 {source}")
-            else:
-                not_found.append(key)
-                print("\u2717 Not found")
+                bibtex, source = fetch_bibtex(key, api_key, args.preferred_source, ss_api_key=ss_api_key)
+                if bibtex:
+                    bibtex = replace_bibtex_key(bibtex, key)
+                    bibtex = truncate_authors(bibtex, args.max_authors)
+                    bibtex_entries.append(bibtex)
+                    print(f"\u2713 {source}")
+                else:
+                    not_found.append(key)
+                    print("\u2717 Not found")
+        except requests.exceptions.HTTPError as e:
+            not_found.append(key)
+            print(f"\u2717 {e}")
 
     # Write output (append new entries to existing content)
     with open(args.output, "w", encoding="utf-8") as f:

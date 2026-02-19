@@ -7,7 +7,7 @@ def replace_bibtex_key(bibtex, new_key):
     """Replace the citation key in a BibTeX entry with a new key."""
     # Match the entry type and key: @article{old_key,
     pattern = r"(@\w+\s*\{)\s*([^,\s]+)\s*,"
-    return re.sub(pattern, rf"\1{new_key},", bibtex, count=1)
+    return re.sub(pattern, rf"\g<1>{new_key},", bibtex, count=1)
 
 
 def extract_bibtex_key(bibtex):

@@ -156,6 +156,13 @@ class TestReplaceBibtexKey:
         assert result.startswith("@article{B:2020xyz,")
         assert "See also A:2020abc" in result
 
+    def test_ads_bibcode_key(self):
+        """Keys starting with digits must not corrupt the entry via octal escape."""
+        bibtex = "@article{OldKey:2020abc,\n  title={Test},\n}"
+        result = replace_bibtex_key(bibtex, "2025ApJ...995L..18A")
+        assert result.startswith("@article{2025ApJ...995L..18A,")
+        assert "title={Test}" in result
+
 
 # --- truncate_authors ---
 
