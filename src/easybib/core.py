@@ -30,7 +30,7 @@ def extract_cite_keys(tex_file):
             key = key.strip()
             if not key:
                 warnings.append(f"{tex_file}: Empty citation key found")
-            elif ":" not in key and not is_arxiv_id(key):
+            elif ":" not in key and not is_arxiv_id(key) and not is_ads_bibcode(key):
                 warnings.append(f"{tex_file}: Skipping key '{key}' (not an INSPIRE/ADS key)")
             else:
                 keys.append(key)

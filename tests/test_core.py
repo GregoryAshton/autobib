@@ -64,6 +64,13 @@ class TestExtractCiteKeys:
         assert len(warnings) == 1
         assert "not an INSPIRE/ADS key" in warnings[0]
 
+    def test_ads_bibcode_no_warning(self, tmp_path):
+        tex = tmp_path / "test.tex"
+        tex.write_text(r"\cite{2025ApJ...995L..18A}")
+        keys, warnings = extract_cite_keys(tex)
+        assert keys == ["2025ApJ...995L..18A"]
+        assert warnings == []
+
     def test_arxiv_new_format_no_warning(self, tmp_path):
         tex = tmp_path / "test.tex"
         tex.write_text(r"\cite{2508.18080}")
