@@ -9,11 +9,14 @@ def is_arxiv_id(key):
            bool(re.match(r'^[a-z][a-z0-9-]*/\d{7}$', key))
 
 
-def extract_cite_keys(tex_file):
+def extract_cite_keys(tex_file, known_keys=None):
     """Extract all citation keys from a LaTeX file.
 
     Returns a tuple of (keys, warnings) where keys is a list of valid citation keys
     and warnings is a list of warning messages for invalid keys.
+
+    known_keys: optional set of keys to accept regardless of format (e.g. from a
+    local bib source file).
     """
     with open(tex_file, "r", encoding="utf-8") as f:
         content = f.read()
@@ -30,6 +33,8 @@ def extract_cite_keys(tex_file):
             key = key.strip()
             if not key:
                 warnings.append(f"{tex_file}: Empty citation key found")
+            elif known_keys and key in known_keys:
+                keys.append(key)
             elif ":" not in key and not is_arxiv_id(key) and not is_ads_bibcode(key):
                 warnings.append(f"{tex_file}: Skipping key '{key}' (not an INSPIRE/ADS key)")
             else:

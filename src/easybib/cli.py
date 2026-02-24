@@ -128,6 +128,16 @@ def main():
 
     args = parser.parse_args()
 
+    # Load source bib file early so its keys are accepted during citation extraction
+    source_entries = {}
+    if args.bib_source:
+        source_path = Path(args.bib_source)
+        if not source_path.is_file():
+            print(f"Error: --bib-source file not found: {args.bib_source}")
+            return 1
+        source_entries = load_bib_entries(source_path)
+        print(f"Loaded {len(source_entries)} entries from {args.bib_source}")
+
     # Collect all citation keys
     input_path = Path(args.path)
     all_keys = set()
@@ -137,7 +147,7 @@ def main():
     else:
         tex_files = input_path.glob("**/*.tex")
     for tex_file in tex_files:
-        keys, warnings = extract_cite_keys(tex_file)
+        keys, warnings = extract_cite_keys(tex_file, known_keys=source_entries.keys() if source_entries else None)
         all_keys.update(keys)
         all_warnings.extend(warnings)
 
@@ -201,16 +211,6 @@ def main():
                 "Set ADS_API_KEY for reliable results."
             )
             print()
-
-    # Load source bib file if provided
-    source_entries = {}
-    if args.bib_source:
-        source_path = Path(args.bib_source)
-        if not source_path.is_file():
-            print(f"Error: --bib-source file not found: {args.bib_source}")
-            return 1
-        source_entries = load_bib_entries(source_path)
-        print(f"Loaded {len(source_entries)} entries from {args.bib_source}")
 
     # Track identifiers seen this run to detect duplicate papers
     seen_source_keys = {}  # source key returned by API -> cite key that claimed it
