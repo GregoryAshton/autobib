@@ -9,7 +9,7 @@ import requests
 
 from easybib import __version__
 from easybib.api import fetch_bibtex, fetch_bibtex_by_arxiv, fetch_aas_macros_sty
-from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub, parse_aas_macros, find_used_macros, build_macro_preamble
+from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub, parse_aas_macros, find_used_macros, expand_aas_macros
 from easybib.core import check_key_type, extract_cite_keys, extract_existing_bib_keys, load_bib_entries, is_ads_bibcode, is_arxiv_id
 
 
@@ -292,17 +292,16 @@ def main():
     else:
         full_bibtex = "\n\n".join(bibtex_entries)
 
-    # Resolve AAS journal macros if requested
-    preamble = ""
+    # Expand AAS journal macros inline if requested
     if args.aas_macros and full_bibtex:
-        print("\nResolving AAS journal macros...", end=" ")
+        print("\nExpanding AAS journal macros...", end=" ")
         try:
             sty_content = fetch_aas_macros_sty()
             all_macros = parse_aas_macros(sty_content)
             used_macros = find_used_macros(full_bibtex, all_macros)
             if used_macros:
-                preamble = build_macro_preamble(used_macros)
-                print(f"\u2713 Added {len(used_macros)} macro definition(s): {', '.join(f'\\{n}' for n in sorted(used_macros))}")
+                full_bibtex = expand_aas_macros(full_bibtex, used_macros)
+                print(f"\u2713 Expanded {len(used_macros)} macro(s): {', '.join(f'\\{n}' for n in sorted(used_macros))}")
             else:
                 print("\u2713 No AAS macros found in output")
         except Exception as e:
@@ -310,10 +309,7 @@ def main():
 
     # Write output
     with open(args.output, "w", encoding="utf-8") as f:
-        if preamble:
-            f.write(preamble + "\n\n" + full_bibtex)
-        else:
-            f.write(full_bibtex)
+        f.write(full_bibtex)
 
     print(f"\nWrote {len(bibtex_entries)} new entries to {args.output}")
 

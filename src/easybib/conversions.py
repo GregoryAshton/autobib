@@ -73,20 +73,15 @@ def find_used_macros(bibtex_text, macros):
     return used
 
 
-def build_macro_preamble(used_macros):
-    """Build a BibTeX @preamble block for the given macros.
+def expand_aas_macros(bibtex, macros):
+    """Expand AAS journal macros inline in a BibTeX string.
 
-    used_macros: dict mapping macro name (without backslash) to journal string.
-    Returns a string with a single @preamble entry containing \\providecommand definitions.
-    Returns an empty string if used_macros is empty.
+    Replaces occurrences of \\macroname (not followed by a word character)
+    with their plain-text expansion. For example, {\\apj} becomes {ApJ}.
     """
-    if not used_macros:
-        return ""
-    commands = "%\n".join(
-        f"\\providecommand{{\\{name}}}{{{val}}}"
-        for name, val in sorted(used_macros.items())
-    ) + "%"
-    return f'@preamble{{"{commands}"}}'
+    for name, value in macros.items():
+        bibtex = re.sub(r'\\' + re.escape(name) + r'(?!\w)', value, bibtex)
+    return bibtex
 
 
 def truncate_authors(bibtex, max_authors):

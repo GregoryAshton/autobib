@@ -146,15 +146,7 @@ If you don't use AASTeX or the A&A document class, use `--aas-macros` to make th
 easybib paper.tex --aas-macros
 ```
 
-easybib downloads the AAS macros file, scans the output for which macros are actually used, and prepends a `@preamble` block with `\providecommand` definitions:
-
-```bibtex
-@preamble{"\providecommand{\apj}{ApJ}%
-\providecommand{\mnras}{MNRAS}%
-\providecommand{\prd}{Phys.~Rev.~D}%"}
-```
-
-Using `\providecommand` means the definitions are safe to include alongside `aas_macros.sty` — if the package is already loaded, the preamble definitions are silently ignored.
+easybib downloads the AAS macros file, scans the output for which macros are actually used, and expands them inline in the `.bib` entries. For example, a field value of `{\apj}` becomes `{ApJ}` directly in the file, so no external macro package is needed and the entries compile correctly with any bibliography style.
 
 You can also enable this permanently in your config file:
 
