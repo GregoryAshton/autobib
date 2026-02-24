@@ -4,6 +4,15 @@ import requests
 
 from easybib.core import is_ads_bibcode
 
+AAS_MACROS_URL = "https://ui.adsabs.harvard.edu/help/actions/aas_macros.sty"
+
+
+def fetch_aas_macros_sty(url=AAS_MACROS_URL):
+    """Fetch the AAS macros .sty file and return its raw content."""
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.text
+
 
 def get_inspire_bibtex(key):
     """Fetch BibTeX directly from INSPIRE for a given INSPIRE key."""

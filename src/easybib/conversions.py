@@ -38,6 +38,57 @@ def make_arxiv_crossref_stub(arxiv_id, bibtex_key):
     return f"@misc{{{arxiv_id},\n  crossref = {{{bibtex_key}}}\n}}"
 
 
+def parse_aas_macros(sty_content):
+    """Parse AAS macro definitions from .sty file content.
+
+    Returns a dict mapping macro name (without backslash) to its journal string.
+    For example: {'apj': 'ApJ', 'mnras': 'MNRAS', ...}
+    """
+    macros = {}
+
+    # Match \def\macroname{\ref@jnl{value}}
+    for match in re.finditer(r'\\def\\(\w+)\{\\ref@jnl\{([^}]+)\}\}', sty_content):
+        macros[match.group(1)] = match.group(2)
+
+    # Match alias definitions like \def\alias{\original} or \let\alias\original
+    for match in re.finditer(r'\\(?:def|let)\\(\w+)[{ \\]\\(\w+)[}]?', sty_content):
+        alias, original = match.group(1), match.group(2)
+        if alias not in macros and original in macros:
+            macros[alias] = macros[original]
+
+    return macros
+
+
+def find_used_macros(bibtex_text, macros):
+    """Find which AAS macros are used in the given BibTeX text.
+
+    macros: dict mapping macro name (without backslash) to journal string.
+    Returns a dict of {macro_name: journal_string} for macros that appear in the text.
+    """
+    used = {}
+    for name, value in macros.items():
+        # Match \macroname not immediately followed by another word character
+        if re.search(r'\\' + re.escape(name) + r'(?!\w)', bibtex_text):
+            used[name] = value
+    return used
+
+
+def build_macro_preamble(used_macros):
+    """Build a BibTeX @preamble block for the given macros.
+
+    used_macros: dict mapping macro name (without backslash) to journal string.
+    Returns a string with a single @preamble entry containing \\providecommand definitions.
+    Returns an empty string if used_macros is empty.
+    """
+    if not used_macros:
+        return ""
+    commands = "%\n".join(
+        f"\\providecommand{{\\{name}}}{{{val}}}"
+        for name, val in sorted(used_macros.items())
+    ) + "%"
+    return f'@preamble{{"{commands}"}}'
+
+
 def truncate_authors(bibtex, max_authors):
     """Truncate the author list in a BibTeX entry to max_authors.
 

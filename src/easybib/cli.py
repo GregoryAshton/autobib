@@ -8,8 +8,8 @@ from pathlib import Path
 import requests
 
 from easybib import __version__
-from easybib.api import fetch_bibtex, fetch_bibtex_by_arxiv
-from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub
+from easybib.api import fetch_bibtex, fetch_bibtex_by_arxiv, fetch_aas_macros_sty
+from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub, parse_aas_macros, find_used_macros, build_macro_preamble
 from easybib.core import check_key_type, extract_cite_keys, extract_existing_bib_keys, is_ads_bibcode, is_arxiv_id
 
 
@@ -50,6 +50,8 @@ def main():
         config_defaults["semantic_scholar_api_key"] = cfg["semantic-scholar-api-key"]
     if "key-type" in cfg:
         config_defaults["key_type"] = cfg["key-type"]
+    if "aas-macros" in cfg:
+        config_defaults["aas_macros"] = cfg["aas-macros"].lower() in ("true", "1", "yes")
 
     parser = argparse.ArgumentParser(
         description="Extract citations and download BibTeX from NASA/ADS, INSPIRE, and Semantic Scholar"
@@ -104,6 +106,12 @@ def main():
         choices=["inspire", "ads", "arxiv"],
         default=None,
         help="Enforce that all citation keys are of the given type: 'inspire', 'ads', or 'arxiv'",
+    )
+    parser.add_argument(
+        "--aas-macros",
+        action="store_true",
+        default=False,
+        help="Download AAS journal macros and add @preamble definitions for any used in the .bib file",
     )
 
     # Apply config file defaults (CLI flags will still override)
@@ -250,14 +258,36 @@ def main():
             not_found.append(key)
             print(f"\u2717 {e}")
 
-    # Write output (append new entries to existing content)
+    # Build the full BibTeX content (existing + new)
+    if existing_content and bibtex_entries:
+        full_bibtex = existing_content + "\n\n" + "\n\n".join(bibtex_entries)
+    elif existing_content:
+        full_bibtex = existing_content
+    else:
+        full_bibtex = "\n\n".join(bibtex_entries)
+
+    # Resolve AAS journal macros if requested
+    preamble = ""
+    if args.aas_macros and full_bibtex:
+        print("\nResolving AAS journal macros...", end=" ")
+        try:
+            sty_content = fetch_aas_macros_sty()
+            all_macros = parse_aas_macros(sty_content)
+            used_macros = find_used_macros(full_bibtex, all_macros)
+            if used_macros:
+                preamble = build_macro_preamble(used_macros)
+                print(f"\u2713 Added {len(used_macros)} macro definition(s): {', '.join(f'\\{n}' for n in sorted(used_macros))}")
+            else:
+                print("\u2713 No AAS macros found in output")
+        except Exception as e:
+            print(f"\u2717 Failed to fetch AAS macros: {e}")
+
+    # Write output
     with open(args.output, "w", encoding="utf-8") as f:
-        if existing_content and bibtex_entries:
-            f.write(existing_content + "\n\n" + "\n\n".join(bibtex_entries))
-        elif existing_content:
-            f.write(existing_content)
+        if preamble:
+            f.write(preamble + "\n\n" + full_bibtex)
         else:
-            f.write("\n\n".join(bibtex_entries))
+            f.write(full_bibtex)
 
     print(f"\nWrote {len(bibtex_entries)} new entries to {args.output}")
 
