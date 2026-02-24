@@ -9,7 +9,7 @@ import requests
 
 from easybib import __version__
 from easybib.api import fetch_bibtex, fetch_bibtex_by_arxiv, fetch_aas_macros_sty
-from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub, parse_aas_macros, find_used_macros, expand_aas_macros
+from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub, parse_aas_macros, find_used_macros, expand_aas_macros, sanitise_unicode
 from easybib.core import check_key_type, detect_key_type, extract_cite_keys, extract_existing_bib_keys, load_bib_entries, is_ads_bibcode, is_arxiv_id
 
 
@@ -56,6 +56,8 @@ def main():
         config_defaults["bib_source"] = cfg["bib-source"]
     if "prefer-api" in cfg:
         config_defaults["prefer_api"] = cfg["prefer-api"].lower() in ("true", "1", "yes")
+    if "ascii" in cfg:
+        config_defaults["ascii"] = cfg["ascii"].lower() in ("true", "1", "yes")
 
     parser = argparse.ArgumentParser(
         description="Extract citations and download BibTeX from NASA/ADS, INSPIRE, and Semantic Scholar"
@@ -128,6 +130,12 @@ def main():
         action="store_true",
         default=False,
         help="When using --bib-source, fetch INSPIRE/ADS/arXiv keys from the API even if they exist in the source file",
+    )
+    parser.add_argument(
+        "--ascii",
+        action="store_true",
+        default=False,
+        help="Replace Unicode characters in BibTeX entries with LaTeX/ASCII equivalents and remove any that cannot be converted",
     )
 
     # Apply config file defaults (CLI flags will still override)
@@ -314,6 +322,10 @@ def main():
                 print("\u2713 No AAS macros found in output")
         except Exception as e:
             print(f"\u2717 Failed to fetch AAS macros: {e}")
+
+    # Replace Unicode with LaTeX/ASCII equivalents if requested
+    if args.ascii and full_bibtex:
+        full_bibtex = sanitise_unicode(full_bibtex)
 
     # Write output
     with open(args.output, "w", encoding="utf-8") as f:

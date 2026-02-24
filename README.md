@@ -35,6 +35,7 @@ Pass a directory to scan all `.tex` files recursively, or a single `.tex` file. 
 | `--aas-macros` | Embed AAS journal macro definitions in the output `.bib` file |
 | `--bib-source` | Existing `.bib` file to copy entries from before falling back to the API |
 | `--prefer-api` | With `--bib-source`, fetch INSPIRE/ADS/arXiv keys from the API even if they exist in the source file |
+| `--ascii` | Replace Unicode characters in BibTeX entries with LaTeX/ASCII equivalents |
 | `--ads-api-key` | ADS API key (overrides `ADS_API_KEY` environment variable) |
 | `--semantic-scholar-api-key` | Semantic Scholar API key (overrides `SEMANTIC_SCHOLAR_API_KEY` environment variable) |
 | `--config` | Path to config file (default: `~/.easybib.config`) |
@@ -182,6 +183,36 @@ You can also set these in your config file:
 [easybib]
 bib-source = /path/to/master.bib
 prefer-api = true
+```
+
+### Unicode sanitisation
+
+ADS BibTeX entries sometimes contain Unicode characters in titles and other fields — for example, a Unicode dash (`─`) in a mass range, Greek letters, or accented characters in journal names. Standard LaTeX requires `\usepackage[utf8]{inputenc}` (or LuaLaTeX/XeLaTeX) to handle these; without it, compilation fails.
+
+Use `--ascii` to convert Unicode to LaTeX/ASCII equivalents automatically:
+
+```bash
+easybib paper.tex --ascii
+```
+
+Known characters are replaced with LaTeX commands:
+
+| Unicode | Replaced with |
+|---------|--------------|
+| `─` `–` `—` (dashes) | `--` or `---` |
+| `é`, `ü`, `ñ`, … (accented) | `{\'e}`, `{\"u}`, `{\~n}`, … |
+| `α`, `β`, `γ`, … (Greek) | `$\alpha$`, `$\beta$`, `$\gamma$`, … |
+| `±`, `×`, `∼`, `≤`, … (math) | `$\pm$`, `$\times$`, `$\sim$`, `$\leq$`, … |
+| `☉`, `⊕` (astronomical) | `$\odot$`, `$\oplus$` |
+| `²`, `³`, `₀`, `₁`, … (super/subscripts) | `$^2$`, `$^3$`, `$_0$`, `$_1$`, … |
+
+Characters that cannot be converted are removed. This flag applies to the entire output file, including any entries carried over from a previous run.
+
+You can also enable it permanently in your config file:
+
+```ini
+[easybib]
+ascii = true
 ```
 
 ### Duplicate detection
