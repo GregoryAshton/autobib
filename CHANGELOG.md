@@ -2,7 +2,7 @@
 
 All notable changes to easybib are documented here.
 
-## [Unreleased]
+## [0.5.0] — 2026-02-24
 
 ### Added
 - `--aas-macros` flag: downloads the AAS journal macro definitions and expands
