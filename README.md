@@ -34,6 +34,7 @@ Pass a directory to scan all `.tex` files recursively, or a single `.tex` file. 
 | `--key-type` | Enforce a single key format: `inspire`, `ads`, or `arxiv` |
 | `--aas-macros` | Embed AAS journal macro definitions in the output `.bib` file |
 | `--bib-source` | Existing `.bib` file to copy entries from before falling back to the API |
+| `--prefer-api` | With `--bib-source`, fetch INSPIRE/ADS/arXiv keys from the API even if they exist in the source file |
 | `--ads-api-key` | ADS API key (overrides `ADS_API_KEY` environment variable) |
 | `--semantic-scholar-api-key` | Semantic Scholar API key (overrides `SEMANTIC_SCHOLAR_API_KEY` environment variable) |
 | `--config` | Path to config file (default: `~/.easybib.config`) |
@@ -167,11 +168,20 @@ For each citation key found in your `.tex` files, easybib checks the source file
 
 This is useful for sharing a master bibliography across projects, or for working offline. The source file accepts any citation key format — keys are not required to be INSPIRE/ADS/arXiv identifiers.
 
-You can also set this in your config file:
+By default the local source always takes priority. To fetch INSPIRE/ADS/arXiv keys from the API regardless of whether they exist in the source file, add `--prefer-api`:
+
+```bash
+easybib paper.tex --bib-source master.bib --prefer-api
+```
+
+This leaves custom-format keys (e.g. `einstein1905`) still served from the local source, while recognised API keys are always fetched fresh.
+
+You can also set these in your config file:
 
 ```ini
 [easybib]
 bib-source = /path/to/master.bib
+prefer-api = true
 ```
 
 ### Duplicate detection

@@ -10,7 +10,7 @@ import requests
 from easybib import __version__
 from easybib.api import fetch_bibtex, fetch_bibtex_by_arxiv, fetch_aas_macros_sty
 from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub, parse_aas_macros, find_used_macros, expand_aas_macros
-from easybib.core import check_key_type, extract_cite_keys, extract_existing_bib_keys, load_bib_entries, is_ads_bibcode, is_arxiv_id
+from easybib.core import check_key_type, detect_key_type, extract_cite_keys, extract_existing_bib_keys, load_bib_entries, is_ads_bibcode, is_arxiv_id
 
 
 def load_config(config_path):
@@ -54,6 +54,8 @@ def main():
         config_defaults["aas_macros"] = cfg["aas-macros"].lower() in ("true", "1", "yes")
     if "bib-source" in cfg:
         config_defaults["bib_source"] = cfg["bib-source"]
+    if "prefer-api" in cfg:
+        config_defaults["prefer_api"] = cfg["prefer-api"].lower() in ("true", "1", "yes")
 
     parser = argparse.ArgumentParser(
         description="Extract citations and download BibTeX from NASA/ADS, INSPIRE, and Semantic Scholar"
@@ -120,6 +122,12 @@ def main():
         default=None,
         metavar="FILE",
         help="Existing .bib file to copy entries from before falling back to API lookup",
+    )
+    parser.add_argument(
+        "--prefer-api",
+        action="store_true",
+        default=False,
+        help="When using --bib-source, fetch INSPIRE/ADS/arXiv keys from the API even if they exist in the source file",
     )
 
     # Apply config file defaults (CLI flags will still override)
@@ -222,8 +230,8 @@ def main():
     bibtex_entries = []
     not_found = []
     for key in sorted(keys_to_fetch):
-        # Check the local source file first
-        if key in source_entries:
+        # Check the local source file first, unless --prefer-api overrides it for API-format keys
+        if key in source_entries and not (args.prefer_api and detect_key_type(key) != "unknown"):
             print(f"Fetching {key}...", end=" ")
             bibtex = truncate_authors(source_entries[key], args.max_authors)
             bibtex_entries.append(bibtex)
