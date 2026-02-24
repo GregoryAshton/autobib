@@ -32,6 +32,8 @@ Pass a directory to scan all `.tex` files recursively, or a single `.tex` file. 
 | `-l`, `--list-keys` | List found citation keys and exit (no fetching) |
 | `--fresh` | Ignore existing output file and start from scratch |
 | `--key-type` | Enforce a single key format: `inspire`, `ads`, or `arxiv` |
+| `--aas-macros` | Embed AAS journal macro definitions in the output `.bib` file |
+| `--bib-source` | Existing `.bib` file to copy entries from before falling back to the API |
 | `--ads-api-key` | ADS API key (overrides `ADS_API_KEY` environment variable) |
 | `--semantic-scholar-api-key` | Semantic Scholar API key (overrides `SEMANTIC_SCHOLAR_API_KEY` environment variable) |
 | `--config` | Path to config file (default: `~/.easybib.config`) |
@@ -66,9 +68,12 @@ max-authors = 3
 preferred-source = ads
 ads-api-key = your-key-here
 semantic-scholar-api-key = your-key-here
+key-type = inspire
+aas-macros = true
+bib-source = /path/to/master.bib
 ```
 
-All fields are optional. CLI flags override config file values, which override the built-in defaults. The `key-type` setting is also supported (see below).
+All fields are optional. CLI flags override config file values, which override the built-in defaults.
 
 To use a config file at a different location:
 
@@ -131,6 +136,52 @@ You can also set this in your config file:
 key-type = inspire
 ```
 
+### AAS journal macros
+
+ADS BibTeX entries use LaTeX macros for journal names (e.g. `\apj` for the Astrophysical Journal, `\mnras` for MNRAS). These macros are defined in the `aas_macros.sty` style file, which must be loaded in your LaTeX document for the `.bib` file to compile correctly.
+
+If you don't use AASTeX or the A&A document class, use `--aas-macros` to make the output `.bib` file self-contained:
+
+```bash
+easybib paper.tex --aas-macros
+```
+
+easybib downloads the AAS macros file, scans the output for which macros are actually used, and prepends a `@preamble` block with `\providecommand` definitions:
+
+```bibtex
+@preamble{"\providecommand{\apj}{ApJ}%
+\providecommand{\mnras}{MNRAS}%
+\providecommand{\prd}{Phys.~Rev.~D}%"}
+```
+
+Using `\providecommand` means the definitions are safe to include alongside `aas_macros.sty` — if the package is already loaded, the preamble definitions are silently ignored.
+
+You can also enable this permanently in your config file:
+
+```ini
+[easybib]
+aas-macros = true
+```
+
+### Local bib source
+
+If you already have a `.bib` file containing some of the entries you need, use `--bib-source` to copy entries from it directly instead of fetching them from the API:
+
+```bash
+easybib paper.tex --bib-source master.bib
+```
+
+For each citation key found in your `.tex` files, easybib checks the source file first. If the entry is there, it is copied directly (with author truncation applied). Keys not present in the source file are fetched from the API as normal.
+
+This is useful for sharing a master bibliography across projects, or for working offline. The source file accepts any citation key format — keys are not required to be INSPIRE/ADS/arXiv identifiers.
+
+You can also set this in your config file:
+
+```ini
+[easybib]
+bib-source = /path/to/master.bib
+```
+
 ### Duplicate detection
 
 easybib detects when two different citation keys in your `.tex` files refer to the same paper — for example, citing both `LIGOScientific:2016aoc` and `2016PhRvL.116f1102A`. Detection is based on:
@@ -182,11 +233,13 @@ Get a key from https://www.semanticscholar.org/product/api.
 ## How it works
 
 1. Scans `.tex` files for `\cite{...}`, `\citep{...}`, `\citet{...}`, and related commands
-2. Accepts INSPIRE texkeys (`Author:2020abc`), ADS bibcodes (`2016PhRvL.116f1102A`), and arXiv IDs (`2508.18080` or `hep-ph/9905318`); warns and skips anything else
+2. Accepts INSPIRE texkeys (`Author:2020abc`), ADS bibcodes (`2016PhRvL.116f1102A`), and arXiv IDs (`2508.18080` or `hep-ph/9905318`); keys present in a `--bib-source` file are always accepted regardless of format
 3. Optionally enforces that all keys are of a single type (`--key-type`)
-4. Fetches BibTeX from the preferred source, with automatic fallback
-5. For INSPIRE/ADS keys: replaces the citation key to match what is in your `.tex` file
-6. For arXiv IDs: keeps the entry's natural key and appends a `@misc` crossref stub so `\cite{arxiv_id}` resolves correctly
-7. Detects duplicate entries (same paper cited under different keys) and skips them with a warning
-8. Truncates long author lists
-9. Skips keys already present in the output file (use `--fresh` to override)
+4. Copies entries found in the local `--bib-source` file directly, without hitting the API
+5. Fetches remaining entries from the preferred source, with automatic fallback
+6. For INSPIRE/ADS keys: replaces the citation key to match what is in your `.tex` file
+7. For arXiv IDs: keeps the entry's natural key and appends a `@misc` crossref stub so `\cite{arxiv_id}` resolves correctly
+8. Detects duplicate entries (same paper cited under different keys) and skips them with a warning
+9. Truncates long author lists
+10. Skips keys already present in the output file (use `--fresh` to override)
+11. Optionally prepends `@preamble` macro definitions for any AAS journal macros used in the output (`--aas-macros`)
