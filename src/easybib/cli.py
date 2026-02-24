@@ -115,7 +115,7 @@ def main():
         "--aas-macros",
         action="store_true",
         default=False,
-        help="Download AAS journal macros and add @preamble definitions for any used in the .bib file",
+        help="Download AAS journal macros and expand them inline in the .bib file (e.g. {\\apj} becomes {ApJ})",
     )
     parser.add_argument(
         "--bib-source",
