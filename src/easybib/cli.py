@@ -10,7 +10,7 @@ import requests
 from easybib import __version__
 from easybib.api import fetch_bibtex, fetch_bibtex_by_arxiv, fetch_aas_macros_sty
 from easybib.conversions import replace_bibtex_key, truncate_authors, extract_bibtex_key, extract_bibtex_fields, make_arxiv_crossref_stub, parse_aas_macros, find_used_macros, build_macro_preamble
-from easybib.core import check_key_type, extract_cite_keys, extract_existing_bib_keys, is_ads_bibcode, is_arxiv_id
+from easybib.core import check_key_type, extract_cite_keys, extract_existing_bib_keys, load_bib_entries, is_ads_bibcode, is_arxiv_id
 
 
 def load_config(config_path):
@@ -52,6 +52,8 @@ def main():
         config_defaults["key_type"] = cfg["key-type"]
     if "aas-macros" in cfg:
         config_defaults["aas_macros"] = cfg["aas-macros"].lower() in ("true", "1", "yes")
+    if "bib-source" in cfg:
+        config_defaults["bib_source"] = cfg["bib-source"]
 
     parser = argparse.ArgumentParser(
         description="Extract citations and download BibTeX from NASA/ADS, INSPIRE, and Semantic Scholar"
@@ -112,6 +114,12 @@ def main():
         action="store_true",
         default=False,
         help="Download AAS journal macros and add @preamble definitions for any used in the .bib file",
+    )
+    parser.add_argument(
+        "--bib-source",
+        default=None,
+        metavar="FILE",
+        help="Existing .bib file to copy entries from before falling back to API lookup",
     )
 
     # Apply config file defaults (CLI flags will still override)
@@ -194,6 +202,16 @@ def main():
             )
             print()
 
+    # Load source bib file if provided
+    source_entries = {}
+    if args.bib_source:
+        source_path = Path(args.bib_source)
+        if not source_path.is_file():
+            print(f"Error: --bib-source file not found: {args.bib_source}")
+            return 1
+        source_entries = load_bib_entries(source_path)
+        print(f"Loaded {len(source_entries)} entries from {args.bib_source}")
+
     # Track identifiers seen this run to detect duplicate papers
     seen_source_keys = {}  # source key returned by API -> cite key that claimed it
     seen_eprints = {}      # arXiv eprint ID -> cite key
@@ -204,6 +222,14 @@ def main():
     bibtex_entries = []
     not_found = []
     for key in sorted(keys_to_fetch):
+        # Check the local source file first
+        if key in source_entries:
+            print(f"Fetching {key}...", end=" ")
+            bibtex = truncate_authors(source_entries[key], args.max_authors)
+            bibtex_entries.append(bibtex)
+            print("\u2713 local file")
+            continue
+
         print(f"Fetching {key}...", end=" ")
         try:
             if is_arxiv_id(key):

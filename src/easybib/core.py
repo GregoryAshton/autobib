@@ -37,6 +37,39 @@ def extract_cite_keys(tex_file):
     return keys, warnings
 
 
+def load_bib_entries(bib_file):
+    """Load all citation entries from a BibTeX file.
+
+    Returns a dict mapping citation key to the full entry text.
+    Uses brace-counting to correctly handle nested braces in field values.
+    Non-citation entries (@preamble, @string) are ignored.
+    """
+    with open(bib_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    entries = {}
+    for m in re.finditer(r'@(\w+)\s*\{', content):
+        entry_type = m.group(1).lower()
+        if entry_type in ("preamble", "string", "comment"):
+            continue
+        start = m.start()
+        depth = 0
+        i = m.end() - 1  # position of opening '{'
+        while i < len(content):
+            if content[i] == '{':
+                depth += 1
+            elif content[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    entry_text = content[start:i + 1]
+                    key_match = re.match(r'@\w+\s*\{\s*([^,\s]+)\s*,', entry_text)
+                    if key_match:
+                        entries[key_match.group(1)] = entry_text
+                    break
+            i += 1
+    return entries
+
+
 def extract_existing_bib_keys(bib_file):
     """Extract citation keys from an existing BibTeX file."""
     if not bib_file.exists():
